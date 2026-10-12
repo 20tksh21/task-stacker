@@ -8,7 +8,7 @@ type Task = {
 export const Task = ({taskText, isDone}:Task ) => {
 
     return (
-        <div className="flex gap-2">
+        <div className="flex gap-2 mb-2">
             <input type="checkbox" checked={isDone}></input>
             <p>{taskText}</p>
         </div>
