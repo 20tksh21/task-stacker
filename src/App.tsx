@@ -1,13 +1,21 @@
-import { useState } from "react";
-import { Task } from "./task";
+import { useState, useEffect } from "react";
+import { supabase } from "./supabase";
+import type { TaskType } from "./task";
 
 export default function App() {
 
-const [taskText, setTaskText] = useState<string>("")
+const [input, setInput] = useState<string>("");
+const [tasks, setTasks] = useState<TaskType[]>([]);
 
-const handleAdd = () => {
 
-}
+  /*データベースからデータ取得 */
+  useEffect(() => {
+    async function fetchProjects() {
+      const { data } = await supabase.from('all-tasks').select('*');
+      if (data) setTasks(data);
+    }
+    fetchProjects()
+  }, [])
 
   /*日付の取得*/
   const today = new Date();
@@ -16,6 +24,23 @@ const handleAdd = () => {
     month: 'long',
     day: 'numeric',
   });
+
+const addTask = async (e: React.SubmitEvent<HTMLFormElement>) => {
+  e.preventDefault(); /*入れないと勝手にリロードされる */
+  if(!input.trim()) return;
+
+  /*データベースにタスクを追加*/
+  const { data, error } = await supabase.from('all-tasks').insert([{ task_text: input, is_done: false }]).select();
+  if(error){
+      console.error('タスクの追加に失敗:', error)
+      return
+  }
+  if(data){
+    setTasks([...tasks, data[0]])
+  }
+
+  setInput("");
+}
 
 
 
@@ -37,22 +62,26 @@ const handleAdd = () => {
           <p className="p-2 bg-sky-400">{formattedDate}のタスク</p>
 
           {/*入力フォーム */}
-          <div className="flex gap-2 items-center m-6 ml-2">
-            <button onClick={handleAdd} className="bg-gray-200 h-7 w-10 border rounded-md leading-none hover:bg-gray-400">追加</button>
+          <form onSubmit={addTask} className="flex gap-2 items-center m-6 ml-2">
+            <button className="bg-gray-200 h-7 w-10 border rounded-md leading-none hover:bg-gray-400">追加</button>
             <input 
               type="text" 
-              value={taskText} 
-              onChange={(e) => setTaskText(e.target.value)} 
+              value={input} 
+              onChange={(e) => setInput(e.target.value)} 
               placeholder="タスクを入力"
               className="bg-gray-200 border rounded-md h-7 p-1"
             />
-          </div>
+          </form>
 
-          {/*モックデータ */}
-          <div className="m-4">
-          <Task taskText="テストデータ１" isDone={false}></Task>
-          <Task taskText="テストデータ２" isDone={true}></Task>
-          </div>
+          {/*タスク一覧*/}
+          <ul className="m-4">
+            {tasks.map((task) => (
+              <li key={task.id} className="flex gap-2 mb-2">
+                <input type="checkbox" checked={task.is_done}></input>
+                <span>{task.task_text}</span>
+              </li>
+            ))}
+          </ul>
         
         </div>
       </div>
