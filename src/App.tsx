@@ -1,21 +1,12 @@
-import { useState, useEffect } from "react";
-import { supabase } from "./supabase";
-import type { TaskType } from "./task";
+import { useTasks } from "./useTasks";
 
 export default function App() {
 
-  const [input, setInput] = useState<string>("");
-  const [tasks, setTasks] = useState<TaskType[]>([]);
-
-
-  //データベースからデータ取得
-  useEffect(() => {
-    async function fetchProjects() {
-      const { data } = await supabase.from('all-tasks').select('*');
-      if (data) setTasks(data);
-    }
-    fetchProjects()
-  }, [])
+  const {
+        tasks, 
+        input, setInput,
+        addTask, deleteTask, doneTask
+    } = useTasks();
 
   //日付の取得
   const today = new Date();
@@ -24,58 +15,6 @@ export default function App() {
     month: 'long',
     day: 'numeric',
   });
-
-  const addTask = async (e: React.SubmitEvent<HTMLFormElement>) => {
-    e.preventDefault(); //入れないと勝手にリロードされる
-    if(!input.trim()) return;
-
-    //データベースにタスクを追加
-    const { data, error } = await supabase.from('all-tasks').insert([{ task_text: input, is_done: false }]).select();
-    if(error){
-      console.error('タスクの追加に失敗:', error)
-      return
-    }
-    if(data){
-    setTasks([...tasks, data[0]])
-    }
-
-    setInput("");
-  } 
-  //データベースから削除
-  const deleteTask = async (id: number) => {
-    const { error } = await supabase
-      .from('all-tasks')
-      .delete()
-      .eq('id', id)
-
-    if (error) {
-      console.error('タスクの削除に失敗:', error)
-      return
-    }
-    setTasks(tasks.filter((task) => task.id !== id))
-  }
-
-  const changeIsDone = async (id: number, currentIsDone: boolean) => {
-    const { error } = await supabase
-      .from('all-tasks')
-      .update({ is_done: !currentIsDone }) // 現在と逆の真偽値を送る
-      .eq('id', id)
-
-    if (error) {
-      console.error('更新に失敗しました:', error)
-      return
-    }
-
-    //画面上のタスクも更新
-    setTasks(
-      tasks.map((task) =>
-        task.id === id ? { ...task, is_done: !currentIsDone } : task
-      )
-    )
-  }
-
-
-
 
 
   return (
@@ -110,7 +49,9 @@ export default function App() {
           <ul className="m-4">
             {tasks.map((task) => (
               <li key={task.id} className="flex gap-2 mb-2">
-                <input type="checkbox" checked={task.is_done} onChange={() => changeIsDone(task.id, task.is_done)}></input>
+                {/*チェックボックス */}
+                <input type="checkbox" checked={task.is_done} onChange={() => doneTask(task.id, task.is_done)}></input>
+                
                 <span>{task.task_text}</span>
                 <button onClick={() => deleteTask(task.id)} className="px-1 border rounded-md">削除</button>
               </li>
