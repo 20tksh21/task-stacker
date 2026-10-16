@@ -4,7 +4,8 @@ export type TaskType = {
     task_text: string;
     is_done: boolean;
     is_archive: boolean;
-    date: string;
+    created_date: string;
+    tags: string[]
 }
 
 /*ここでこのファイル終わり*/

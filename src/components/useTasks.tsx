@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-import { supabase } from "./supabase";
+import { supabase } from "../supabase";
 import type { TaskType } from "./task";
 
 export function useTasks() {
@@ -8,11 +8,22 @@ export function useTasks() {
     const [archivedTasks, setArchivedTasks] = useState<TaskType[]>([]);
     const [input, setInput] = useState<string>("");
 
+    //日付の取得
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}`;
+
       //データベースからデータ取得
     useEffect(() => {
         async function fetchProjects() {
-        const { data } = await supabase.from('all-tasks').select('*');
-        if (data) setTasks(data);
+            
+            const { data } = await supabase.from('all-tasks').select('*');
+            if (data) {
+                setTasks(data.filter((task) => task.is_archive === false));
+                setArchivedTasks(data.filter((task) => task.is_archive === true));
+            }
         }
         fetchProjects()
     }, [setTasks])
@@ -21,9 +32,11 @@ export function useTasks() {
         e.preventDefault(); //入れないと勝手にリロードされる
         if(!input.trim()) return;
 
+  
+
         const { data, error } = await supabase
         .from('all-tasks')
-        .insert([{ task_text: input, is_done: false }])
+        .insert([{ task_text: input, is_done: false, is_archive: false, created_date: formattedDate }])
         .select('*');
 
         if(error){
@@ -69,9 +82,15 @@ export function useTasks() {
         const targetTask = tasks.find((task) => task.id === targetId);
         if(!targetTask) return;
 
-        //画面上のタスク配列から削除し、アーカイブタスク配列に入れる（どちらも作り直し）
-        setTasks(tasks.filter((task) => task.id !== targetId));
-        setArchivedTasks([...archivedTasks, {...targetTask, is_archive: true} ])
+        if(currentIsArchive == false){
+            //画面上のタスク配列から削除し、アーカイブタスク配列に入れる（どちらも作り直し）
+            setTasks(tasks.filter((task) => task.id !== targetId));
+            setArchivedTasks([...archivedTasks, {...targetTask, is_archive: true} ])
+        } else {
+            setArchivedTasks(archivedTasks.filter((task) => task.id !== targetId));
+            setTasks([...tasks, {...targetTask, is_archive: false} ])
+        }
+
     }
 
     //タスクの完了
@@ -92,6 +111,7 @@ export function useTasks() {
 
 
     return {
+        formattedDate,
         tasks, setTasks,
         archivedTasks, setArchivedTasks,
         input, setInput,
